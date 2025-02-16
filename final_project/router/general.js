@@ -25,73 +25,73 @@ public_users.post('/register', (req, res) => {
     return res.status(201).json({ message: "User registered successfully!" });
 });
 
-// Get the book list available in the shop
-public_users.get('/', function (req, res) {
-  res.status(200).json(books); // ✅ No need to stringify manually
+
+// Get book details based on Author using Async-Await
+// Get all books using Async-Await
+public_users.get('/books', async (req, res) => {
+    try {
+        const response = await new Promise((resolve) => setTimeout(() => resolve(books), 500));
+        return res.status(200).json({ books: response });
+    } catch (error) {
+        return res.status(500).json({ message: "Error fetching books.", error: error.message });
+    }
 });
 
-// Get book details based on ISBN
-public_users.get('/isbn/:isbn', function (req, res) {
-    let isbn = req.params.isbn;
-    if (books[isbn]) {
-      return res.status(200).json(books[isbn]);
-    } else {
-      return res.status(404).json({ message: "Book not found" });
+public_users.get('/isbn/:isbn', async (req, res) => {
+    try {
+        const isbn = req.params.isbn;
+
+        // Fetch book data from local books object (if stored in-memory)
+        const book = books[isbn]; // Assuming `books` is an object storing books
+
+        if (book) {
+            return res.status(200).json(book);
+        } else {
+            throw new Error("Book not found");
+        }
+    } catch (error) {
+        return res.status(404).json({ message: "Book not found", error: error.message });
     }
-  });
+});
+
+
   
 
 // Get book details based on author
-public_users.get('/author/:author', function (req, res) {
-    const authorName = req.params.author; // Get author from request parameters
-    let booksByAuthor = [];
-  
-    // Iterate through books and find matches
-    Object.keys(books).forEach((key) => {
-      if (books[key].author.toLowerCase() === authorName.toLowerCase()) {
-        booksByAuthor.push(books[key]); // Add matching book to the array
-      }
-    });
-  
-    if (booksByAuthor.length > 0) {
-      res.status(200).json(booksByAuthor); // Return matching books
-    } else {
-      res.status(404).json({ message: "No books found for this author" });
+public_users.get('/author/:author', async (req, res) => {
+    try {
+        const authorName = req.params.author.toLowerCase();
+        const response = await axios.get(`https://asadenginear-5000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/books?author=${authorName}`); // Replace with actual API URL
+        return res.status(200).json(response.data);
+    } catch (error) {
+        return res.status(404).json({ message: "No books found for this author", error: error.message });
     }
-  });
+});
   
 
-// Get all books based on title
-public_users.get('/title/:title', function (req, res) {
-    const bookTitle = req.params.title; // Get title from request parameters
-    let booksByTitle = [];
-  
-    // Iterate through books and find matches
-    Object.keys(books).forEach((key) => {
-      if (books[key].title.toLowerCase() === bookTitle.toLowerCase()) {
-        booksByTitle.push(books[key]); // Add matching book to the array
-      }
-    });
-  
-    if (booksByTitle.length > 0) {
-      res.status(200).json(booksByTitle); // Return matching books
-    } else {
-      res.status(404).json({ message: "No books found with this title" });
-    }
-  });
-  
+const axios = require('axios');  // ✅ Import Axios
 
-// Get book review
-public_users.get('/review/:isbn', function (req, res) {
-    const isbn = req.params.isbn; // Get ISBN from request parameters
-  
-    // Check if the book with given ISBN exists
-    if (books[isbn]) {
-      res.status(200).json(books[isbn].reviews); // Return the reviews for the book
-    } else {
-      res.status(404).json({ message: "Book not found" }); // If ISBN does not exist
+public_users.get('/title/:title', async (req, res) => {
+    try {
+        const bookTitle = req.params.title.toLowerCase();
+        
+        // Fetch all books
+        const response = await axios.get(`https://asadenginear-5000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/books`);
+        const books = response.data.books;
+
+        // Filter books by title
+        const filteredBooks = Object.values(books).filter(book => book.title.toLowerCase() === bookTitle);
+
+        if (filteredBooks.length > 0) {
+            return res.status(200).json(filteredBooks);
+        } else {
+            return res.status(404).json({ message: "No book found with this title" });
+        }
+    } catch (error) {
+        return res.status(500).json({ message: "Error fetching books", error: error.message });
     }
-  });
+});
+
 
   
   
